@@ -1,19 +1,228 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>The JavaScript MonkeyChef</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Affe kocht JavaScript-Süppchen</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, Arial, sans-serif;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      background: #f6f7fb;
+    }
+    .wrap {
+      width: min(900px, 92vw);
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      display: block;
+    }
+    .hint {
+      margin-top: 12px;
+      color: #333;
+      font-size: 14px;
+      opacity: .8;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <canvas id="c" width="900" height="520"></canvas>
+    <div class="hint">Tipp: Lade die Seite neu, wenn du Änderungen gemacht hast (F5).</div>
+  </div>
 
-<h1>Hi Monkey</h1>
-<button onclick="klick()">Come on and click</button>
+  <script>
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
 
-<script>
-    function klick() {
-        alert("hoho you did it - now pull my finger!");
+    // Für Animation
+    let t = 0;
+
+    // Hilfsfunktionen
+    function circle(x, y, r, fill, stroke) {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 3; ctx.stroke(); }
     }
-</script>
 
+    function roundRect(x, y, w, h, r, fill, stroke) {
+      const rr = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rr);
+      ctx.arcTo(x + w, y + h, x, y + h, rr);
+      ctx.arcTo(x, y + h, x, y, rr);
+      ctx.arcTo(x, y, x + w, y, rr);
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 3; ctx.stroke(); }
+    }
+
+    function text(txt, x, y, size = 22, color = "#111", align = "center") {
+      ctx.fillStyle = color;
+      ctx.font = `700 ${size}px system-ui, Arial`;
+      ctx.textAlign = align;
+      ctx.textBaseline = "middle";
+      ctx.fillText(txt, x, y);
+    }
+
+    function drawSteam(cx, cy, i, time) {
+      // i = 0..n-1
+      const phase = time * 0.03 + i * 1.3;
+      const y = cy - (phase * 28) % 130;     // steigt auf
+      const sway = Math.sin(phase) * 10;     // wackelt
+      const alpha = Math.max(0, 1 - (cy - y) / 130);
+      ctx.save();
+      ctx.globalAlpha = 0.35 * alpha;
+      ctx.strokeStyle = "#8aa";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(cx + sway, y);
+      ctx.bezierCurveTo(cx + sway + 10, y - 15, cx + sway - 10, y - 35, cx + sway + 5, y - 55);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function draw() {
+      t++;
+
+      // Hintergrund
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // "Küchen"-Boden
+      ctx.fillStyle = "#f1f2f7";
+      ctx.fillRect(0, 390, canvas.width, 130);
+
+      // Topfposition
+      const potX = 520, potY = 285;
+
+      // Dampf (hinter allem)
+      for (let i = 0; i < 6; i++) {
+        drawSteam(potX + 50 + i * 18, potY - 15, i, t);
+      }
+
+      // Topf (Süppchen)
+      // Topfkörper
+      roundRect(potX - 10, potY, 210, 120, 22, "#2a2f39", "#1a1f27");
+      // Topfrand
+      roundRect(potX - 20, potY - 22, 230, 42, 18, "#3a4150", "#1a1f27");
+      // Henkel
+      roundRect(potX - 55, potY + 30, 55, 55, 18, null, "#1a1f27");
+      roundRect(potX + 200, potY + 30, 55, 55, 18, null, "#1a1f27");
+
+      // Flüssigkeit oben
+      circle(potX + 95, potY - 2, 82, "#f7c948", null);
+      // leichte Wellen
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = "#d6a21f";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      const wave = Math.sin(t * 0.06) * 6;
+      ctx.arc(potX + 95, potY - 2 + wave, 68, 0, Math.PI);
+      ctx.stroke();
+      ctx.restore();
+
+      // Text "JavaScript" im Topf
+      text("JavaScript", potX + 95, potY + 10, 28, "#2b2b2b");
+
+      // Kochlöffel
+      ctx.save();
+      ctx.translate(potX + 150, potY - 55);
+      ctx.rotate(-0.35);
+      roundRect(-8, -20, 16, 160, 8, "#8b5a2b", "#5a3515");
+      circle(0, -35, 20, "#8b5a2b", "#5a3515");
+      ctx.restore();
+
+      // Affe (links)
+      const mX = 260, mY = 240;
+
+      // Körper
+      circle(mX, mY + 110, 85, "#6b3f22", "#3b2312");
+      // Bauch
+      circle(mX, mY + 125, 50, "#b98a63", "#3b2312");
+
+      // Kopf
+      circle(mX, mY, 95, "#6b3f22", "#3b2312");
+      // Ohren
+      circle(mX - 85, mY + 5, 35, "#6b3f22", "#3b2312");
+      circle(mX + 85, mY + 5, 35, "#6b3f22", "#3b2312");
+      circle(mX - 85, mY + 5, 18, "#b98a63", "#3b2312");
+      circle(mX + 85, mY + 5, 18, "#b98a63", "#3b2312");
+
+      // Gesicht (hell)
+      circle(mX, mY + 15, 60, "#b98a63", "#3b2312");
+
+      // Augen
+      circle(mX - 25, mY - 10, 14, "#fff", "#222");
+      circle(mX + 25, mY - 10, 14, "#fff", "#222");
+      // Pupillen bewegen leicht (damit es lebt)
+      const px = Math.sin(t * 0.05) * 3;
+      const py = Math.cos(t * 0.04) * 2;
+      circle(mX - 25 + px, mY - 10 + py, 6, "#222", null);
+      circle(mX + 25 + px, mY - 10 + py, 6, "#222", null);
+
+      // Nase/Mund
+      circle(mX, mY + 18, 10, "#8a5b3a", "#3b2312");
+
+      // Lächeln
+      ctx.strokeStyle = "#3b2312";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(mX, mY + 35, 24, 0.1 * Math.PI, 0.9 * Math.PI);
+      ctx.stroke();
+
+      // Arme
+      // linker Arm
+      ctx.save();
+      ctx.strokeStyle = "#3b2312";
+      ctx.lineWidth = 20;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(mX - 55, mY + 85);
+      ctx.lineTo(mX - 140, mY + 130);
+      ctx.stroke();
+      ctx.restore();
+
+      // rechter Arm Richtung Topf (rührt)
+      ctx.save();
+      ctx.strokeStyle = "#3b2312";
+      ctx.lineWidth = 20;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(mX + 55, mY + 85);
+      // leicht animiertes Ende
+      const stir = Math.sin(t * 0.07) * 10;
+      ctx.lineTo(potX + 20, potY + 10 + stir);
+      ctx.stroke();
+      ctx.restore();
+
+      // Hand (Pfote)
+      circle(potX + 20, potY + 10 + Math.sin(t * 0.07) * 10, 16, "#6b3f22", "#3b2312");
+
+      // Überschrift
+      text("Der Affe kocht ein JavaScript-Süppchen", 450, 60, 30, "#111");
+      text("(alles mit JavaScript auf Canvas gezeichnet)", 450, 95, 18, "#555");
+    }
+
+    function loop() {
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
 </body>
 </html>
